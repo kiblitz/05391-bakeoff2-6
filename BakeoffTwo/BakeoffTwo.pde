@@ -206,6 +206,126 @@ class TripleSplit extends ImplementationWithPreview {
   }
 }
 
+// 16.06 WPM
+class Standard extends ImplementationWithPreview {
+  private final char[][] setup = new char[][] {
+    new char[] {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
+    new char[] {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'},
+    new char[] {'z', 'x', 'c', 'v', 'b', 'n', 'm'}
+  };
+  private final float[] offsets = new float[] {0, 0.5, 1.0}; 
+  private ArrayList<KeyButton> keyButtons;
+  private KeyButton backspace, space;
+
+  Standard() {
+    keyButtons = new ArrayList();
+    for (int row = 0; row < setup.length; ++row) {
+      for (int col = 0; col < setup[row].length; ++col) {
+        keyButtons.add(new KeyButton(
+          setup[row][col],
+          width/2 - sizeOfInputArea/2 + (col+offsets[row])*sizeOfInputArea/10,
+          height/2 - sizeOfInputArea/2 + (row+1)*sizeOfInputArea/5,
+          sizeOfInputArea/10,
+          sizeOfInputArea/5
+        ));
+      }
+    }
+    backspace = new KeyButton(char(171), width/2-sizeOfInputArea/2, height/2+3*sizeOfInputArea/10, sizeOfInputArea/2, sizeOfInputArea/5);
+    space = new KeyButton('_', width/2, height/2+3*sizeOfInputArea/10, sizeOfInputArea/2, sizeOfInputArea/5);
+  }
+
+  void drawNonPreview() {
+    for (KeyButton keyButton : keyButtons) {
+      keyButton.draw();
+    }
+    backspace.draw();
+    space.draw();
+  }
+
+  void onMousePressed() {
+    if (backspace.isClicked() && currentTyped.length() > 0) {
+      currentTyped = currentTyped.substring(0, currentTyped.length()-1);
+    } else if (space.isClicked()) {
+      currentTyped += ' ';
+    } else {
+      for (KeyButton keyButton : keyButtons) {
+        if (keyButton.isClicked()) {
+          currentTyped += keyButton.key();
+          return;
+        }
+      }
+    }
+  }
+}
+
+enum ZoomMode {
+  WIDE,
+  ZOOMED
+}
+
+class Zoom extends ImplementationWithPreview {
+  private ZoomMode mode;
+  
+  private final char[][] setup = new char[][] {
+    new char[] {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
+    new char[] {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'},
+    new char[] {'z', 'x', 'c', 'v', 'b', 'n', 'm'}
+  };
+  private final float[] offsets = new float[] {0, 0.5, 1.0}; 
+  private ArrayList<KeyButton> keyButtons;
+  private KeyButton backspace, space;
+
+  Zoom() {
+    mode = ZoomMode.WIDE;
+    keyButtons = new ArrayList();
+    setupKeys();
+    backspace = new KeyButton(char(171), width/2-sizeOfInputArea/2, height/2+3*sizeOfInputArea/10, sizeOfInputArea/2, sizeOfInputArea/5);
+    space = new KeyButton('_', width/2, height/2+3*sizeOfInputArea/10, sizeOfInputArea/2, sizeOfInputArea/5);
+  }
+
+  void setupKeys() {
+    keyButtons.clear();
+    if (mode == ZoomMode.WIDE) {
+      for (int row = 0; row < setup.length; ++row) {
+        for (int col = 0; col < setup[row].length; ++col) {
+          keyButtons.add(new KeyButton(
+            setup[row][col],
+            width/2 - sizeOfInputArea/2 + (col+offsets[row])*sizeOfInputArea/10,
+            height/2 - sizeOfInputArea/2 + (row+1)*sizeOfInputArea/5,
+            sizeOfInputArea/10,
+            sizeOfInputArea/5
+          ));
+        }
+      }
+    } else {
+      
+    }
+  }
+
+  void drawNonPreview() {
+    for (KeyButton keyButton : keyButtons) {
+      keyButton.draw();
+    }
+    backspace.draw();
+    space.draw();
+  }
+
+  void onMousePressed() {
+    if (backspace.isClicked() && currentTyped.length() > 0) {
+      currentTyped = currentTyped.substring(0, currentTyped.length()-1);
+    } else if (space.isClicked()) {
+      currentTyped += ' ';
+    } else {
+      for (KeyButton keyButton : keyButtons) {
+        if (keyButton.isClicked()) {
+          currentTyped += keyButton.key();
+          return;
+        }
+      }
+    }
+  }
+}
+
 abstract class Button {
   protected float x, y, x_dim, y_dim;
   Button(float x, float y, float x_dim, float y_dim) {
@@ -258,7 +378,7 @@ void setup()
   textFont(createFont("Arial", fontSize)); //set the font to arial 24. Creating fonts is expensive, so make difference sizes once in setup, not draw
   noStroke(); //my code doesn't use any strokes
   
-  currentImplementation = new TripleSplit();
+  currentImplementation = new Standard();
 }
 
 //You can modify anything in here. This is just a basic implementation.
