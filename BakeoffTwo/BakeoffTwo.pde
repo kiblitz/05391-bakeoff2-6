@@ -274,11 +274,16 @@ class Zoom extends ImplementationWithPreview {
   private final float[] offsets = new float[] {0, 0.5, 1.0}; 
   private ArrayList<KeyButton> keyButtons;
   private KeyButton backspace, space;
+  private Button keyboard;
+  private float zoomOffset = 0;
 
   Zoom() {
     mode = ZoomMode.WIDE;
     keyButtons = new ArrayList();
     setupKeys();
+    keyboard = new Button(width/2-sizeOfInputArea/2, height/2-3*sizeOfInputArea/10, sizeOfInputArea, 3*sizeOfInputArea/5) {
+      void draw() {}
+    };
     backspace = new KeyButton(char(171), width/2-sizeOfInputArea/2, height/2+3*sizeOfInputArea/10, sizeOfInputArea/2, sizeOfInputArea/5);
     space = new KeyButton('_', width/2, height/2+3*sizeOfInputArea/10, sizeOfInputArea/2, sizeOfInputArea/5);
   }
@@ -298,7 +303,20 @@ class Zoom extends ImplementationWithPreview {
         }
       }
     } else {
-      
+      for (int row = 0; row < setup.length; ++row) {
+        for (int col = 0; col < setup[row].length; ++col) {
+          float x = width/2 - sizeOfInputArea/2 + (col+offsets[row])*sizeOfInputArea/10;
+          if (x >= zoomOffset && x + sizeOfInputArea/10 <= zoomOffset + 2*sizeOfInputArea/5) {
+            keyButtons.add(new KeyButton(
+              setup[row][col],
+              width/2 - sizeOfInputArea/2 + (col+offsets[row])*sizeOfInputArea/5 - zoomOffset,
+              height/2 - sizeOfInputArea/2 + (row+1)*sizeOfInputArea/5,
+              sizeOfInputArea/5,
+              sizeOfInputArea/5
+            ));
+          }
+        }
+      }
     }
   }
 
@@ -315,10 +333,18 @@ class Zoom extends ImplementationWithPreview {
       currentTyped = currentTyped.substring(0, currentTyped.length()-1);
     } else if (space.isClicked()) {
       currentTyped += ' ';
+    } else if (mode == ZoomMode.WIDE) {
+      if (keyboard.isClicked()) {
+        mode = ZoomMode.ZOOMED;
+        zoomOffset = mouseX - 3*sizeOfInputArea/10;
+        setupKeys();
+      }
     } else {
       for (KeyButton keyButton : keyButtons) {
         if (keyButton.isClicked()) {
           currentTyped += keyButton.key();
+          mode = ZoomMode.WIDE;
+          setupKeys();
           return;
         }
       }
@@ -340,6 +366,30 @@ abstract class Button {
   }
   
   abstract void draw();
+}
+
+class CircleKeyButton extends KeyButton {
+  private char c;
+  CircleKeyButton(char c, float x, float y, float r) {
+    super(c, x, y, r, r);
+  }
+  
+  void draw() {
+    fill(255);
+    stroke(0);
+    circle(x, y, x_dim);
+    textAlign(CENTER);
+    fill(0);
+    text("" + c, x + x_dim/2, y + y_dim/2);
+  }
+  
+  boolean isClicked() {
+    return didMouseClickCircle(x, y, x_dim);
+  }
+  
+  char key() {
+    return c;
+  }
 }
 
 class KeyButton extends Button {
@@ -408,7 +458,7 @@ void draw()
   {
     nextTrial(); //start the trials!
   }
-   
+
   if (startTime!=0)
   {
     //feel free to change the size and position of the target/entered phrases and next button 
@@ -433,6 +483,10 @@ void draw()
 boolean didMouseClick(float x, float y, float w, float h) //simple function to do hit testing
 {
   return (mouseX > x && mouseX<x+w && mouseY>y && mouseY<y+h); //check to see if it is in button bounds
+}
+boolean didMouseClickCircle(float x, float y, float r)
+{
+  return (mouseX-x)*(mouseX-x)+(mouseY-y)*(mouseY-y) <= r*r;
 }
 
 //my terrible implementation you can entirely replace
