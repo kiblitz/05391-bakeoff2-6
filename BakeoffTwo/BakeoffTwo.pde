@@ -191,7 +191,7 @@ class TripleSplit extends ImplementationWithPreview {
     } else if (right.isClicked() && mode != TripleSplitMode.RIGHT_SIDE) {
       mode = TripleSplitMode.RIGHT_SIDE;
       setupKeys(rightKeySetup);
-    } else if (backspace.isClicked()) {
+    } else if (backspace.isClicked() && currentTyped.length() > 0) {
       currentTyped = currentTyped.substring(0, currentTyped.length()-1);
     } else if (space.isClicked()) {
       currentTyped += ' ';
