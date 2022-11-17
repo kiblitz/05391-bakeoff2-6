@@ -16,6 +16,7 @@ String currentTyped = ""; //what the user has typed so far
 final int DPIofYourDeviceScreen = 200; //you will need to look up the DPI or PPI of your device to make sure you get the right scale!!
 //http://en.wikipedia.org/wiki/List_of_displays_by_pixel_density
 final float sizeOfInputArea = DPIofYourDeviceScreen*1; //aka, 1.0 inches square!
+final int fontSize = 24;
 PImage watch;
 
 abstract class Implementation {
@@ -23,20 +24,97 @@ abstract class Implementation {
   abstract void onMousePressed();
 }
 
-class DefaultImplementation extends Implementation {
+class Default extends Implementation {
   //Variables for my silly implementation. You can delete this:
-  private char currentLetter = 'a';
+  private char currentLetter;
+  private Button red, green, textArea;
+    
+  Default() {
+    currentLetter = 'a';
+    red = new Button(width/2-sizeOfInputArea/2, height/2-sizeOfInputArea/2+sizeOfInputArea/2, sizeOfInputArea/2, sizeOfInputArea/2) {
+      void draw() {
+        fill(255, 0, 0);
+        rect(x, y, x_dim, y_dim);
+      }
+    };
+    green = new Button(width/2-sizeOfInputArea/2+sizeOfInputArea/2, height/2-sizeOfInputArea/2+sizeOfInputArea/2, sizeOfInputArea/2, sizeOfInputArea/2) {
+      void draw() {
+        fill(0, 255, 0);
+        rect(x, y, x_dim, y_dim);
+      }
+    };
+    textArea = new Button(width/2-sizeOfInputArea/2, height/2-sizeOfInputArea/2, sizeOfInputArea, sizeOfInputArea/2) {
+      void draw() {
+        textAlign(CENTER);
+        fill(200);
+        text("" + currentLetter, width/2, height/2-sizeOfInputArea/4);
+      }
+    };
+  }
   
   void draw() {
+    red.draw();
+    green.draw();
+    textArea.draw();
+  }
+  
+  void onMousePressed() {
+    if (red.isClicked()) //check if click in left button
+    {
+      currentLetter --;
+      if (currentLetter<'_') //wrap around to z
+        currentLetter = 'z';
+    }
+  
+    if (green.isClicked()) //check if click in right button
+    {
+      currentLetter ++;
+      if (currentLetter>'z') //wrap back to space (aka underscore)
+        currentLetter = '_';
+    }
+  
+    if (textArea.isClicked()) //check if click occured in letter area
+    {
+      if (currentLetter=='_') //if underscore, consider that a space bar
+        currentTyped+=" ";
+      else if (currentLetter=='`' & currentTyped.length()>0) //if `, treat that as a delete command
+        currentTyped = currentTyped.substring(0, currentTyped.length()-1);
+      else if (currentLetter!='`') //if not any of the above cases, add the current letter to the typed string
+        currentTyped+=currentLetter;
+    }
+  }
+}
 
-    //my draw code
+abstract class ImplementationWithPreview extends Implementation {
+  protected final int maxSize = int(sizeOfInputArea/fontSize);
+  
+  void draw() {
+    drawNonPreview();
+    
+    fill(200);
+    textAlign(LEFT);
+    String output = currentTyped;
+    if (output.length() > maxSize) {
+      output = currentTyped.substring(output.length() - maxSize);
+    }
+    text(output, width/2 - sizeOfInputArea/2, height/2 - sizeOfInputArea/2 + fontSize);
+  }
+  
+  abstract void drawNonPreview();
+}
+
+class TripleSplit extends ImplementationWithPreview {
+  private char currentLetter;
+  
+  TripleSplit() {
+    currentLetter = 'a';
+  }
+
+  void drawNonPreview() {
     fill(255, 0, 0); //red button
     rect(width/2-sizeOfInputArea/2, height/2-sizeOfInputArea/2+sizeOfInputArea/2, sizeOfInputArea/2, sizeOfInputArea/2); //draw left red button
     fill(0, 255, 0); //green button
     rect(width/2-sizeOfInputArea/2+sizeOfInputArea/2, height/2-sizeOfInputArea/2+sizeOfInputArea/2, sizeOfInputArea/2, sizeOfInputArea/2); //draw right green button
-    textAlign(CENTER);
-    fill(200);
-    text("" + currentLetter, width/2, height/2-sizeOfInputArea/4); //draw current letter
   }
   
   void onMousePressed() {
@@ -63,13 +141,24 @@ class DefaultImplementation extends Implementation {
       else if (currentLetter!='`') //if not any of the above cases, add the current letter to the typed string
         currentTyped+=currentLetter;
     }
-  
-    //You are allowed to have a next button outside the 1" area
-    if (didMouseClick(600, 600, 200, 200)) //check if click is in next button
-    {
-      nextTrial(); //if so, advance to next trial
-    }
+
   }
+}
+
+abstract class Button {
+  protected float x, y, x_dim, y_dim;
+  Button(float x, float y, float x_dim, float y_dim) {
+    this.x = x;
+    this.y = y;
+    this.x_dim = x_dim;
+    this.y_dim = y_dim;
+  }
+
+  boolean isClicked() {
+    return didMouseClick(x, y, x_dim, y_dim);
+  }
+  
+  abstract void draw();
 }
 
 Implementation currentImplementation;
@@ -84,10 +173,10 @@ void setup()
  
   orientation(LANDSCAPE); //can also be PORTRAIT - sets orientation on android device
   size(800, 800); //Sets the size of the app. You should modify this to your device's native size. Many phones today are 1080 wide by 1920 tall.
-  textFont(createFont("Arial", 24)); //set the font to arial 24. Creating fonts is expensive, so make difference sizes once in setup, not draw
+  textFont(createFont("Arial", fontSize)); //set the font to arial 24. Creating fonts is expensive, so make difference sizes once in setup, not draw
   noStroke(); //my code doesn't use any strokes
   
-  currentImplementation = new DefaultImplementation();
+  currentImplementation = new Default();
 }
 
 //You can modify anything in here. This is just a basic implementation.
@@ -148,6 +237,12 @@ boolean didMouseClick(float x, float y, float w, float h) //simple function to d
 void mousePressed()
 {
   currentImplementation.onMousePressed();
+
+  //You are allowed to have a next button outside the 1" area
+  if (didMouseClick(600, 600, 200, 200)) //check if click is in next button
+  {
+    nextTrial(); //if so, advance to next trial
+  }
 }
 
 
