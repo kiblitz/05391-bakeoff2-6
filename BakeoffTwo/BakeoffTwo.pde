@@ -86,7 +86,7 @@ class Default extends Implementation {
 }
 
 abstract class ImplementationWithPreview extends Implementation {
-  protected final int maxSize = int(sizeOfInputArea/fontSize);
+  private final int maxSize = int(sizeOfInputArea/fontSize);
   
   void draw() {
     drawNonPreview();
@@ -97,51 +97,112 @@ abstract class ImplementationWithPreview extends Implementation {
     if (output.length() > maxSize) {
       output = currentTyped.substring(output.length() - maxSize);
     }
-    text(output, width/2 - sizeOfInputArea/2, height/2 - sizeOfInputArea/2 + fontSize);
+    text(output + '|', width/2 - sizeOfInputArea/2, height/2 - sizeOfInputArea/2 + fontSize);
   }
   
   abstract void drawNonPreview();
 }
 
+enum TripleSplitMode {
+  LEFT_SIDE,
+  MIDDLE,
+  RIGHT_SIDE
+}
+
+// 8.56 WPM
 class TripleSplit extends ImplementationWithPreview {
-  private char currentLetter;
+  private TripleSplitMode mode;
+  private Button left, middle, right;
   
+  private final char[][] leftKeySetup = new char[][] {
+    new char[] {'q', 'w', 'e'},
+    new char[] {'a', 's', 'd'},
+    new char[] {'z', 'x', 'c'}
+  };
+  private final char[][] middleKeySetup = new char[][] {
+    new char[] {'r', 't', 'y'},
+    new char[] {'f', 'g', 'h'},
+    new char[] {'v', 'b'}
+  };
+  private final char[][] rightKeySetup = new char[][] {
+    new char[] {'u', 'i', 'o', 'p'},
+    new char[] {'j', 'k', 'l'},
+    new char[] {'n', 'm'}
+  };
+  private ArrayList<KeyButton> keyButtons;
+  private KeyButton backspace, space;
+
   TripleSplit() {
-    currentLetter = 'a';
+    mode = TripleSplitMode.LEFT_SIDE;
+    keyButtons = new ArrayList();
+    setupKeys(leftKeySetup);
+    left = new Button(width/2-sizeOfInputArea/2, height/2+3*sizeOfInputArea/10, sizeOfInputArea/3, sizeOfInputArea/5) {
+      void draw() {
+        fill(255);
+        stroke(0);
+        rect(x, y, x_dim, y_dim);
+      }
+    };
+    middle = new Button(width/2-sizeOfInputArea/6, height/2+3*sizeOfInputArea/10, sizeOfInputArea/3, sizeOfInputArea/5) {
+      void draw() {
+        fill(255);
+        stroke(0);
+        rect(x, y, x_dim, y_dim);
+      }
+    };
+    right = new Button(width/2+sizeOfInputArea/6, height/2+3*sizeOfInputArea/10, sizeOfInputArea/3, sizeOfInputArea/5) {
+      void draw() {
+        fill(255);
+        stroke(0);
+        rect(x, y, x_dim, y_dim);
+      }
+    };
+    backspace = new KeyButton(char(171), width/2+3*sizeOfInputArea/10, height/2-7*sizeOfInputArea/30, sizeOfInputArea/5, sizeOfInputArea/5);
+    space = new KeyButton('_', width/2+3*sizeOfInputArea/10, height/2+1*sizeOfInputArea/30, sizeOfInputArea/5, sizeOfInputArea/5);
+  }
+  
+  void setupKeys(char[][] setup) {
+    keyButtons.clear();
+    for (int row = 0; row < setup.length; ++row) {
+      for (int col = 0; col < setup[row].length; ++col) {
+        keyButtons.add(new KeyButton(setup[row][col], width/2 - sizeOfInputArea/2 + col*sizeOfInputArea/5, height/2 - sizeOfInputArea/2 + (row+1)*sizeOfInputArea/5, sizeOfInputArea/5, sizeOfInputArea/5));
+      }
+    }
   }
 
   void drawNonPreview() {
-    fill(255, 0, 0); //red button
-    rect(width/2-sizeOfInputArea/2, height/2-sizeOfInputArea/2+sizeOfInputArea/2, sizeOfInputArea/2, sizeOfInputArea/2); //draw left red button
-    fill(0, 255, 0); //green button
-    rect(width/2-sizeOfInputArea/2+sizeOfInputArea/2, height/2-sizeOfInputArea/2+sizeOfInputArea/2, sizeOfInputArea/2, sizeOfInputArea/2); //draw right green button
+    left.draw();
+    middle.draw();
+    right.draw();
+    for (KeyButton keyButton : keyButtons) {
+      keyButton.draw();
+    }
+    backspace.draw();
+    space.draw();
   }
-  
-  void onMousePressed() {
-    if (didMouseClick(width/2-sizeOfInputArea/2, height/2-sizeOfInputArea/2+sizeOfInputArea/2, sizeOfInputArea/2, sizeOfInputArea/2)) //check if click in left button
-    {
-      currentLetter --;
-      if (currentLetter<'_') //wrap around to z
-        currentLetter = 'z';
-    }
-  
-    if (didMouseClick(width/2-sizeOfInputArea/2+sizeOfInputArea/2, height/2-sizeOfInputArea/2+sizeOfInputArea/2, sizeOfInputArea/2, sizeOfInputArea/2)) //check if click in right button
-    {
-      currentLetter ++;
-      if (currentLetter>'z') //wrap back to space (aka underscore)
-        currentLetter = '_';
-    }
-  
-    if (didMouseClick(width/2-sizeOfInputArea/2, height/2-sizeOfInputArea/2, sizeOfInputArea, sizeOfInputArea/2)) //check if click occured in letter area
-    {
-      if (currentLetter=='_') //if underscore, consider that a space bar
-        currentTyped+=" ";
-      else if (currentLetter=='`' & currentTyped.length()>0) //if `, treat that as a delete command
-        currentTyped = currentTyped.substring(0, currentTyped.length()-1);
-      else if (currentLetter!='`') //if not any of the above cases, add the current letter to the typed string
-        currentTyped+=currentLetter;
-    }
 
+  void onMousePressed() {
+    if (left.isClicked() && mode != TripleSplitMode.LEFT_SIDE) {
+      mode = TripleSplitMode.LEFT_SIDE;
+      setupKeys(leftKeySetup);
+    } else if (middle.isClicked() && mode != TripleSplitMode.MIDDLE) {
+      mode = TripleSplitMode.MIDDLE;
+      setupKeys(middleKeySetup);
+    } else if (right.isClicked() && mode != TripleSplitMode.RIGHT_SIDE) {
+      mode = TripleSplitMode.RIGHT_SIDE;
+      setupKeys(rightKeySetup);
+    } else if (backspace.isClicked()) {
+      currentTyped = currentTyped.substring(0, currentTyped.length()-1);
+    } else if (space.isClicked()) {
+      currentTyped += ' ';
+    } else {
+      for (KeyButton keyButton : keyButtons) {
+        if (keyButton.isClicked()) {
+          currentTyped += keyButton.key();
+          return;
+        }
+      }
+    }
   }
 }
 
@@ -161,6 +222,27 @@ abstract class Button {
   abstract void draw();
 }
 
+class KeyButton extends Button {
+  private char c;
+  KeyButton(char c, float x, float y, float x_dim, float y_dim) {
+    super(x, y, x_dim, y_dim);
+    this.c = c;
+  }
+  
+  void draw() {
+    fill(255);
+    stroke(0);
+    rect(x, y, x_dim, y_dim);
+    textAlign(CENTER);
+    fill(0);
+    text("" + c, x + x_dim/2, y + y_dim/2);
+  }
+  
+  char key() {
+    return c;
+  }
+}
+
 Implementation currentImplementation;
 
 //You can modify anything in here. This is just a basic implementation.
@@ -176,7 +258,7 @@ void setup()
   textFont(createFont("Arial", fontSize)); //set the font to arial 24. Creating fonts is expensive, so make difference sizes once in setup, not draw
   noStroke(); //my code doesn't use any strokes
   
-  currentImplementation = new Default();
+  currentImplementation = new TripleSplit();
 }
 
 //You can modify anything in here. This is just a basic implementation.
