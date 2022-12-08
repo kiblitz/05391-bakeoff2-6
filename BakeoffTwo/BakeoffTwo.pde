@@ -13,10 +13,10 @@ float lettersExpectedTotal = 0; //a running total of the number of letters expec
 float errorsTotal = 0; //a running total of the number of errors (when hitting next)
 String currentPhrase = ""; //the current target phrase
 String currentTyped = ""; //what the user has typed so far
-final int DPIofYourDeviceScreen = 200; //you will need to look up the DPI or PPI of your device to make sure you get the right scale!!
+final int DPIofYourDeviceScreen = 142; //you will need to look up the DPI or PPI of your device to make sure you get the right scale!!
 //http://en.wikipedia.org/wiki/List_of_displays_by_pixel_density
 final float sizeOfInputArea = DPIofYourDeviceScreen*1; //aka, 1.0 inches square!
-final int fontSize = 24;
+final int fontSize = 18;
 PImage watch;
 
 abstract class Implementation {
@@ -273,7 +273,7 @@ class Zoom extends ImplementationWithPreview {
   };
   private final float[] offsets = new float[] {0, 0.5, 1.0}; 
   private ArrayList<KeyButton> keyButtons;
-  private KeyButton backspace, space;
+  private KeyButton backspace, space, zoomOut;
   private Button keyboard;
   private float zoomOffset = 0;
 
@@ -284,8 +284,9 @@ class Zoom extends ImplementationWithPreview {
     keyboard = new Button(width/2-sizeOfInputArea/2, height/2-3*sizeOfInputArea/10, sizeOfInputArea, 3*sizeOfInputArea/5) {
       void draw() {}
     };
-    backspace = new KeyButton(char(171), width/2-sizeOfInputArea/2, height/2+3*sizeOfInputArea/10, sizeOfInputArea/2, sizeOfInputArea/5);
-    space = new KeyButton('_', width/2, height/2+3*sizeOfInputArea/10, sizeOfInputArea/2, sizeOfInputArea/5);
+    backspace = new KeyButton(char(171), width/2-sizeOfInputArea/2, height/2+3*sizeOfInputArea/10, sizeOfInputArea/3, sizeOfInputArea/5);
+    space = new KeyButton('_', width/2-sizeOfInputArea/6, height/2+3*sizeOfInputArea/10, sizeOfInputArea/3, sizeOfInputArea/5);
+    zoomOut = new KeyButton('^', width/2+sizeOfInputArea/6, height/2+3*sizeOfInputArea/10, sizeOfInputArea/3, sizeOfInputArea/5);
   }
 
   void setupKeys() {
@@ -305,11 +306,11 @@ class Zoom extends ImplementationWithPreview {
     } else {
       for (int row = 0; row < setup.length; ++row) {
         for (int col = 0; col < setup[row].length; ++col) {
-          float x = width/2 - sizeOfInputArea/2 + (col+offsets[row])*sizeOfInputArea/10;
-          if (x >= zoomOffset && x + sizeOfInputArea/10 <= zoomOffset + 2*sizeOfInputArea/5) {
+          float newX = width/2 - sizeOfInputArea/2 + (col+offsets[row])*sizeOfInputArea/5 - zoomOffset;
+          if (newX >= width/2 - sizeOfInputArea/2 && newX <= width/2 + sizeOfInputArea*3/10) {
             keyButtons.add(new KeyButton(
               setup[row][col],
-              width/2 - sizeOfInputArea/2 + (col+offsets[row])*sizeOfInputArea/5 - zoomOffset,
+              newX,
               height/2 - sizeOfInputArea/2 + (row+1)*sizeOfInputArea/5,
               sizeOfInputArea/5,
               sizeOfInputArea/5
@@ -326,6 +327,9 @@ class Zoom extends ImplementationWithPreview {
     }
     backspace.draw();
     space.draw();
+    if (mode == ZoomMode.ZOOMED) {
+      zoomOut.draw();
+    }
   }
 
   void onMousePressed() {
@@ -333,10 +337,18 @@ class Zoom extends ImplementationWithPreview {
       currentTyped = currentTyped.substring(0, currentTyped.length()-1);
     } else if (space.isClicked()) {
       currentTyped += ' ';
+    } else if (zoomOut.isClicked()) {
+      mode = ZoomMode.WIDE;
+      setupKeys();
     } else if (mode == ZoomMode.WIDE) {
       if (keyboard.isClicked()) {
         mode = ZoomMode.ZOOMED;
-        zoomOffset = mouseX - 3*sizeOfInputArea/10;
+        zoomOffset = mouseX - width/2 + sizeOfInputArea/2;
+        if (zoomOffset <= sizeOfInputArea/10) {
+          zoomOffset = 0;
+        } else if (zoomOffset >= 9*sizeOfInputArea/10) {
+          zoomOffset = sizeOfInputArea;
+        }
         setupKeys();
       }
     } else {
@@ -428,7 +440,7 @@ void setup()
   textFont(createFont("Arial", fontSize)); //set the font to arial 24. Creating fonts is expensive, so make difference sizes once in setup, not draw
   noStroke(); //my code doesn't use any strokes
   
-  currentImplementation = new Standard();
+  currentImplementation = new Zoom();
 }
 
 //You can modify anything in here. This is just a basic implementation.
@@ -492,7 +504,9 @@ boolean didMouseClickCircle(float x, float y, float r)
 //my terrible implementation you can entirely replace
 void mousePressed()
 {
-  currentImplementation.onMousePressed();
+  if (startTime!=0) {
+    currentImplementation.onMousePressed();
+  }
 
   //You are allowed to have a next button outside the 1" area
   if (didMouseClick(600, 600, 200, 200)) //check if click is in next button
