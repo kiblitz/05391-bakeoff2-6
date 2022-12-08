@@ -273,6 +273,7 @@ class Zoom extends ImplementationWithPreview {
   };
   private final float[] offsets = new float[] {0, 0.5, 1.0}; 
   private ArrayList<KeyButton> keyButtons;
+  private KeyButton qButton, pButton, aButton, lButton;
   private KeyButton backspace, space, zoomOut;
   private Button keyboard;
   private float zoomOffset = 0;
@@ -294,13 +295,24 @@ class Zoom extends ImplementationWithPreview {
     if (mode == ZoomMode.WIDE) {
       for (int row = 0; row < setup.length; ++row) {
         for (int col = 0; col < setup[row].length; ++col) {
-          keyButtons.add(new KeyButton(
-            setup[row][col],
+          char c = setup[row][col];
+          KeyButton keyButton = new KeyButton(
+            c,
             width/2 - sizeOfInputArea/2 + (col+offsets[row])*sizeOfInputArea/10,
             height/2 - sizeOfInputArea/2 + (row+1)*sizeOfInputArea/5,
             sizeOfInputArea/10,
             sizeOfInputArea/5
-          ));
+          );
+          keyButtons.add(keyButton);
+          if (c == 'q') {
+            qButton = keyButton;
+          } else if (c == 'p') {
+            pButton = keyButton;
+          } else if (c == 'a') {
+            aButton = keyButton;
+          } else if (c == 'l') {
+            lButton = keyButton;
+          }
         }
       }
     } else {
@@ -344,11 +356,22 @@ class Zoom extends ImplementationWithPreview {
       if (keyboard.isClicked()) {
         mode = ZoomMode.ZOOMED;
         zoomOffset = mouseX - width/2 + sizeOfInputArea/2;
+        if (qButton.isClicked()) {
+          zoomOffset = 0;
+        } else if (pButton.isClicked()) {
+          zoomOffset = sizeOfInputArea;
+        } else if (aButton.isClicked()) {
+          zoomOffset = sizeOfInputArea/10;
+        } else if (lButton.isClicked()) {
+          zoomOffset = sizeOfInputArea*9/10+0.01;
+        }
+        /*
         if (zoomOffset <= sizeOfInputArea/10) {
           zoomOffset = 0;
         } else if (zoomOffset >= 9*sizeOfInputArea/10) {
           zoomOffset = sizeOfInputArea;
         }
+        */
         setupKeys();
       }
     } else {
